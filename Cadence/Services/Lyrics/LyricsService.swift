@@ -223,6 +223,13 @@ nonisolated struct SongQuery: Equatable, Sendable {
         self.title = Self.removingCredits(from: title)
     }
 
+    /// Whether two videos carry the same song, such as its music video and its Topic upload.
+    func isSameSong(as other: SongQuery) -> Bool {
+        !title.isEmpty
+            && title.compare(other.title, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+            && artist.looselyMatches(other.artist)
+    }
+
     /// Cuts featured artists and producer credits: "Song ft. X" → "Song".
     private static func removingCredits(from text: String) -> String {
         let credit = #/(?i)\s+(ft\.?|feat\.?|featuring|prod\.?)\s+.*$/#

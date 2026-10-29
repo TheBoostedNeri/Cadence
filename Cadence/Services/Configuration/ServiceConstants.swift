@@ -79,6 +79,8 @@ nonisolated enum YouTubeMatchPolicy {
     static let candidates = 5
     /// A video this close to the album song's length is likely the album version.
     static let durationTolerance: TimeInterval = 10
+    /// Results searched for a song's other version, its music video or its audio.
+    static let versionCandidates = 10
 }
 
 /// `onError` codes from the YouTube IFrame Player API.

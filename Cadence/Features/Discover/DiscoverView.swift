@@ -256,23 +256,27 @@ private struct GenreTile: View {
     let tint: Color
 
     var body: some View {
-        ZStack(alignment: .bottomLeading) {
-            RoundedRectangle(cornerRadius: Radius.large)
-                .fill(tint.gradient)
-            Image(systemName: genre.systemImage)
-                .font(Typography.genreTileSymbol)
-                .foregroundStyle(Palette.onPlayer.opacity(Opacity.genreSymbol))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .padding(Spacing.medium)
-                .accessibilityHidden(true)
-            Text(genre.name)
-                .font(Typography.genreTileTitle)
-                .foregroundStyle(Palette.onPlayer)
-                .lineLimit(Layout.cardTitleLineLimit)
-                .padding(Spacing.medium)
-        }
-        .frame(height: Layout.genreTileHeight)
-        .contentShape(.rect(cornerRadius: Radius.large))
+        // The symbol and name sit over the tile rather than sizing it: tall symbols, such as
+        // Folk's tree, would otherwise stretch their tiles past the others in the row.
+        RoundedRectangle(cornerRadius: Radius.large)
+            .fill(tint.gradient)
+            .frame(height: Layout.genreTileHeight)
+            .overlay(alignment: .topTrailing) {
+                Image(systemName: genre.systemImage)
+                    .font(Typography.genreTileSymbol)
+                    .foregroundStyle(Palette.onPlayer.opacity(Opacity.genreSymbol))
+                    .padding(Spacing.medium)
+                    .accessibilityHidden(true)
+            }
+            .overlay(alignment: .bottomLeading) {
+                Text(genre.name)
+                    .font(Typography.genreTileTitle)
+                    .foregroundStyle(Palette.onPlayer)
+                    .lineLimit(Layout.cardTitleLineLimit)
+                    .padding(Spacing.medium)
+            }
+            .clipShape(.rect(cornerRadius: Radius.large))
+            .contentShape(.rect(cornerRadius: Radius.large))
         .pointerHover(.lift)
     }
 }

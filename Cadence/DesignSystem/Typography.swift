@@ -47,4 +47,5 @@ enum Typography {
     /// Synced lyrics: large and bold, like Apple Music's.
     static let lyric = Font.largeTitle.weight(.bold)
     static let plainLyrics = Font.title2.weight(.semibold)
+    static let versionSwitch = Font.subheadline.weight(.semibold)
 }

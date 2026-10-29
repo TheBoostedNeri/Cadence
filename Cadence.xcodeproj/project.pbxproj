@@ -42,6 +42,7 @@
 		48767EED958931ABF5EADA41 /* PlaylistsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 996FE1B8EB51A59BD6777505 /* PlaylistsView.swift */; };
 		4937F8944D3364F331CB4D0B /* RecentsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7C9A0B8221E8218D58F64CE /* RecentsView.swift */; };
 		4D9C534983A5E933F34C6AB6 /* GoogleAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A98656A95BC850AA2BB12D8F /* GoogleAuthService.swift */; };
+		4F54F71480E6E951201B6A27 /* MacAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A382D218F03F34973AA08176 /* MacAppDelegate.swift */; };
 		4FD89A52F84A378ECE97206E /* AppError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 805D9C023A40CE79285E51CB /* AppError.swift */; };
 		50B11BB14F8EA9DC99C15ED3 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0D65A5287A71AF5CD4306DA /* RootView.swift */; };
 		50CE8DE799E34D5993DCEA56 /* EventDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C696C0ADFB30BA8DC5D18D4 /* EventDiagnostics.swift */; };
@@ -55,6 +56,7 @@
 		60B839E637B69EF19501C323 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BFB8508BC4035455ABDBF49 /* HomeView.swift */; };
 		61CE73B1E338E416FB584A48 /* YouTubeDTOs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0033FC4C386EE58107FF9C81 /* YouTubeDTOs.swift */; };
 		639403B3F65F88E5BDCDC6CB /* MiniPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9226DB02FC30C078EF644CB /* MiniPlayerView.swift */; };
+		641CB62DDA1F3211C52F5DD3 /* MacAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A382D218F03F34973AA08176 /* MacAppDelegate.swift */; };
 		6648AE1D4D696A099618DEF3 /* StateViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72F7596991E3D7DFDFCEB0A8 /* StateViews.swift */; };
 		6994A07457534E5D9C371581 /* MusicModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8D79FD78282B5CD5C1D157A /* MusicModels.swift */; };
 		69AE25B94E87204A4E683A2F /* PlatformAdaptations.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4AB4274288643A2047F8839 /* PlatformAdaptations.swift */; };
@@ -175,6 +177,7 @@
 		95EB14BFFEE8287A649198F7 /* MacPlayerBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacPlayerBar.swift; sourceTree = "<group>"; };
 		996FE1B8EB51A59BD6777505 /* PlaylistsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistsView.swift; sourceTree = "<group>"; };
 		9B46EDA27FBF407A2496C68A /* PlayerBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerBridge.swift; sourceTree = "<group>"; };
+		A382D218F03F34973AA08176 /* MacAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacAppDelegate.swift; sourceTree = "<group>"; };
 		A3CC345823DCAD572CEA3DAB /* ServiceHub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceHub.swift; sourceTree = "<group>"; };
 		A749C288E5597F383050F5CC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A8606F1DFEADB3F2C76A1998 /* AlbumView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumView.swift; sourceTree = "<group>"; };
@@ -329,6 +332,7 @@
 				CA51DE08B3D399D714CFE501 /* AppEnvironment.swift */,
 				CCD2468FAE7A89F2B18DEDAF /* CadenceApp.swift */,
 				5C696C0ADFB30BA8DC5D18D4 /* EventDiagnostics.swift */,
+				A382D218F03F34973AA08176 /* MacAppDelegate.swift */,
 				E0D65A5287A71AF5CD4306DA /* RootView.swift */,
 			);
 			path = App;
@@ -640,6 +644,7 @@
 				3B1FC9A09DA8041095843553 /* LoadState.swift in Sources */,
 				C8ED75B456F8D815D2077AB4 /* LyricsPanel.swift in Sources */,
 				5E8C3C5D6C32055ADC273875 /* LyricsService.swift in Sources */,
+				4F54F71480E6E951201B6A27 /* MacAppDelegate.swift in Sources */,
 				AE350914C90C3B4CB8B1859C /* MacPlayerBar.swift in Sources */,
 				3C3BE28A20D900F59FEA6C17 /* MiniPlayerView.swift in Sources */,
 				0219918CB521DF7A29ECB808 /* MusicGenre.swift in Sources */,
@@ -709,6 +714,7 @@
 				07CF753C110010B8BD45D2E1 /* LoadState.swift in Sources */,
 				A198618403BF28E2CCA9A552 /* LyricsPanel.swift in Sources */,
 				36E16F91564D1400C6C08626 /* LyricsService.swift in Sources */,
+				641CB62DDA1F3211C52F5DD3 /* MacAppDelegate.swift in Sources */,
 				BFCDC6113889D436A1CA1BF7 /* MacPlayerBar.swift in Sources */,
 				639403B3F65F88E5BDCDC6CB /* MiniPlayerView.swift in Sources */,
 				B29DE103A40E4CEAD52DF9E7 /* MusicGenre.swift in Sources */,

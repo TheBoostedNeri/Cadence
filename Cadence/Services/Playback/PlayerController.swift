@@ -53,11 +53,22 @@ final class PlayerController {
     /// True while Autoplay looks for more songs.
     private(set) var isFindingAutoplayTracks = false
     var isNowPlayingPresented = false
+    /// Now Playing's video views on screen, which hold the YouTube player while a music video
+    /// plays. With none, the player plays from its hidden spot (see `MainTabView`). Counted from
+    /// the views themselves, so the video stays put while Now Playing slides away.
+    private var videoViewCount = 0 {
+        didSet { applyVideoVisibility() }
+    }
+    var showsVideoInNowPlaying: Bool { videoViewCount > 0 }
 
     /// Called the first time each queued track actually starts playing.
     @ObservationIgnored var onTrackStarted: ((Track) -> Void)?
     /// Finds the YouTube video for an album song, which comes from Apple's catalog.
     @ObservationIgnored var matchYouTubeVideo: ((Track) async throws -> Track)?
+    /// Finds a YouTube song's music video (`wantsVideo`), or a music video's audio.
+    @ObservationIgnored var findOtherVersion: ((_ track: Track, _ wantsVideo: Bool) async throws -> Track)?
+    /// True while the Song and Video switch looks for the other version.
+    private(set) var isSwitchingVersion = false
     /// Finds catalog songs to play after `track` once the queue runs out: similar songs, and
     /// some more by the same artist.
     @ObservationIgnored var findAutoplayTracks: ((Track) async throws -> [Track])?
@@ -91,6 +102,11 @@ final class PlayerController {
         configuration.allowsPictureInPictureMediaPlayback = false
         #endif
         configuration.mediaTypesRequiringUserActionForPlayback = []
+        #if os(macOS)
+        // Closing the Mac window hides it, and WebKit suspends a page whose window is hidden,
+        // freezing the song mid-play. The player's page keeps running instead.
+        configuration.preferences.inactiveSchedulingPolicy = .none
+        #endif
         configuration.userContentController.add(coordinator, name: PlayerBridge.messageHandlerName)
         // Only matters with background play on; in the foreground the page is visible anyway.
         configuration.userContentController.addUserScript(WKUserScript(
@@ -515,6 +531,28 @@ final class PlayerController {
         }
     }
 
+    /// Swaps the song for its music video, or the video for the song, like YouTube Music's Song
+    /// and Video switch. It takes the song's place in the queue and carries on from the same
+    /// moment. Throws `noOtherVersion` when YouTube has no such version.
+    func switchVersion(toVideo wantsVideo: Bool) async throws {
+        guard let index = currentIndex, let track = currentTrack, track.hasOtherVersions,
+              let findOtherVersion, !isSwitchingVersion
+        else { return }
+        isSwitchingVersion = true
+        defer { isSwitchingVersion = false }
+        let version = try await findOtherVersion(track, wantsVideo)
+        // Another song may have started while it was found.
+        guard currentIndex == index, queue.indices.contains(index), queue[index] == track else { return }
+        let position = min(currentTime, version.duration ?? currentTime)
+        queue[index] = version
+        if let unshuffledIndex = indexInUnshuffledQueue(of: track) {
+            unshuffledQueue?[unshuffledIndex] = version
+        }
+        load(index: index, startingAt: position)
+        // The same play carries on, so history keeps just the version the user picked.
+        didReportCurrentTrack = true
+    }
+
     func seek(to time: TimeInterval) {
         currentTime = time
         pendingSeek = (time, .now)
@@ -537,17 +575,25 @@ final class PlayerController {
         pause()
     }
 
-    /// Background play shows artwork instead of the video, so the video stops rendering.
-    /// Turning it off brings back YouTube's rule: no playback while the player is hidden.
+    /// Turning background play off brings back YouTube's rule: no playback while Now Playing is
+    /// closed.
     func backgroundPlaySettingChanged() {
-        applyVideoVisibility()
         if !isYouTubeBackgroundPlayEnabled && !isNowPlayingPresented {
             handleNowPlayingDismissed()
         }
     }
 
+    func videoViewDidAppear() {
+        videoViewCount += 1
+    }
+
+    func videoViewDidDisappear() {
+        videoViewCount = max(videoViewCount - 1, 0)
+    }
+
+    /// The video only renders while Now Playing shows it.
     private func applyVideoVisibility() {
-        evaluate(PlayerBridge.setVideoHidden(isYouTubeBackgroundPlayEnabled))
+        evaluate(PlayerBridge.setVideoHidden(!showsVideoInNowPlaying))
     }
 
     func setVolume(_ newVolume: Double) {
@@ -577,11 +623,12 @@ final class PlayerController {
         }
     }
 
-    /// The player moved into its hidden spot, which happens when background play is turned on.
-    /// WebKit pauses video that briefly leaves the screen, so treat a pause right after this as
-    /// WebKit's, not the user's.
+    /// The player moved between Now Playing's video and its hidden spot, as a music video's
+    /// Now Playing opens or closes, or a song and a video take turns. WebKit pauses video that
+    /// briefly leaves the screen, so treat a pause right after this as WebKit's, not the user's.
     func webViewDidMove() {
-        guard isYouTubeBackgroundPlayEnabled, currentTrack?.requiresVisiblePlayer == true else { return }
+        applyVideoVisibility()
+        guard currentTrack?.requiresVisiblePlayer == true, isPlaybackAllowed else { return }
         systemPauseWindowStart = .now
         if isPlaybackIntended && status == .paused {
             resumeAfterSystemPause()
@@ -595,6 +642,9 @@ final class PlayerController {
             isPlaybackIntended = isPlaying || status == .loading
         }
     }
+
+    /// YouTube plays while Now Playing is open, and with it closed only under background play.
+    private var isPlaybackAllowed: Bool { isNowPlayingPresented || isYouTubeBackgroundPlayEnabled }
 
     /// A pause this soon after leaving the screen or moving the player comes from WebKit, not the user.
     private var isInSystemPauseWindow: Bool {
@@ -693,8 +743,13 @@ final class PlayerController {
 
     // MARK: Loading
 
-    private func load(index: Int) {
+    private func load(index: Int, startingAt startTime: TimeInterval = 0) {
         prepareForTrack(at: index)
+        if startTime > 0 {
+            // Like a seek, so the new video's first reports from zero don't snap the lyrics back.
+            currentTime = startTime
+            pendingSeek = (startTime, .now)
+        }
         cancelMatch()
 
         let track = queue[index]
@@ -713,10 +768,14 @@ final class PlayerController {
         status = .loading
         isPlaybackIntended = true
         if isPlayerReady {
-            evaluate(PlayerBridge.load(videoID: videoID, autoplay: isNowPlayingPresented || isYouTubeBackgroundPlayEnabled))
+            evaluate(PlayerBridge.load(
+                videoID: videoID,
+                autoplay: isNowPlayingPresented || isYouTubeBackgroundPlayEnabled,
+                startingAt: startTime
+            ))
         } else {
             pendingVideoID = videoID
-            pendingStartTime = 0
+            pendingStartTime = startTime
             if pageLoadFailed { loadPlayerPage() }
         }
     }
@@ -825,8 +884,8 @@ final class PlayerController {
         case .buffering:
             status = .buffering
         case .playing:
-            guard isNowPlayingPresented || isYouTubeBackgroundPlayEnabled else {
-                // Policy: never keep playing while the player is hidden.
+            guard isPlaybackAllowed else {
+                // Policy: without background play, never keep playing with Now Playing closed.
                 evaluate(PlayerBridge.pause)
                 return
             }
@@ -835,10 +894,9 @@ final class PlayerController {
             reportTrackStartIfNeeded()
         case .paused, .cued:
             status = .paused
-            guard isYouTubeBackgroundPlayEnabled else { break }
-            if isPlaybackIntended && isInSystemPauseWindow {
+            if isPlaybackIntended && isInSystemPauseWindow && isPlaybackAllowed {
                 resumeAfterSystemPause()
-            } else if backgroundedAt != nil {
+            } else if isYouTubeBackgroundPlayEnabled && backgroundedAt != nil {
                 // Paused later from the Lock Screen or Control Center: respect it.
                 isPlaybackIntended = false
             }

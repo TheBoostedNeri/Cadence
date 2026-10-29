@@ -71,6 +71,27 @@ nonisolated enum SongTitle {
     }
 }
 
+/// What a video's title says about its recording. Music videos often add intros, skits and
+/// outros, so synced lyrics timed against the album audio drift on them.
+nonisolated enum VideoTitle {
+    /// "Song (Official Music Video)" or "Song [MV]", but not "Song (Official Lyric Video)".
+    static func isMusicVideo(_ title: String) -> Bool {
+        title.contains(#/(?i)\b(?:official\s+(?:4k\s+|hd\s+|music\s+)?video|music\s+video|m/?v)\b/#)
+            && !isAudio(title)
+            && !title.contains(#/(?i)\b(?:lyrics?|visuali[sz]er)\b/#)
+    }
+
+    /// "Song (Official Audio)".
+    static func isAudio(_ title: String) -> Bool {
+        title.contains(#/(?i)\baudio\b/#)
+    }
+
+    /// A search such as "song music video", whose results should keep YouTube's order.
+    static func asksForVideo(_ query: String) -> Bool {
+        query.contains(#/(?i)\b(?:video|m/?v)\b/#)
+    }
+}
+
 nonisolated enum ISO8601Duration {
     private static let secondsPerMinute: TimeInterval = 60
     private static let secondsPerHour: TimeInterval = 3_600

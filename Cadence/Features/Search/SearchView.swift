@@ -64,9 +64,11 @@ struct SearchView: View {
         case .loaded(let tracks) where tracks.isEmpty:
             ContentUnavailableView.search(text: resultsQuery)
         case .loaded(let tracks):
-            TrackCollection(tracks, id: { index, _ in index }) { index, track in
+            TrackCollection(tracks, id: { index, _ in index }) { _, track in
                 SongRow(for: track) {
-                    player.play(tracks, startingAt: index)
+                    // Results aren't a list to play through, so only the chosen song plays and
+                    // nothing queues after it; Autoplay carries on from it when it's on.
+                    player.play([track])
                 } label: {
                     TrackRow(track: track, isCurrent: player.currentTrack?.id == track.id)
                 }

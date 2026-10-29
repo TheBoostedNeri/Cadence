@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cadence</string>
+    <string name="playback_channel_name">Playback</string>
+    <string name="playback_channel_description">What\'s playing, with controls, while background play is on.</string>
+</resources>

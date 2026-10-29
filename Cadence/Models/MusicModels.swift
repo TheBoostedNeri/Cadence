@@ -19,6 +19,9 @@ nonisolated struct Track: Identifiable, Hashable, Codable, Sendable {
     /// An album song waiting for its YouTube video. Until then `id` is the Apple catalog ID; the
     /// player finds the video when the song is about to play.
     var needsYouTubeMatch = false
+    /// Which recording a YouTube video carries; nil for other services and songs saved before
+    /// it was recorded.
+    var videoKind: VideoKind?
 
     /// The song in its service's own app or website.
     var externalURL: URL {
@@ -36,6 +39,19 @@ nonisolated struct Track: Identifiable, Hashable, Codable, Sendable {
 
     /// YouTube's rules require its player to stay on screen while it plays.
     var requiresVisiblePlayer: Bool { source == .youtube }
+
+    /// Whether this is a song's music video rather than its audio, for Now Playing's Song and
+    /// Video switch. Songs saved before Cadence recorded it go by their title.
+    var isMusicVideo: Bool {
+        (videoKind ?? (VideoTitle.isMusicVideo(title) ? .musicVideo : .other)) == .musicVideo
+    }
+
+    /// Music videos show their video in Now Playing; songs show their artwork, played from the
+    /// player's hidden spot.
+    var showsVideo: Bool { requiresVisiblePlayer && isMusicVideo }
+
+    /// YouTube songs can switch between their audio and their music video.
+    var hasOtherVersions: Bool { source == .youtube && !needsYouTubeMatch }
 
     /// The Apple catalog song this is, when known: Apple Music songs, and album songs played on YouTube.
     var catalogSongID: String? { source == .appleMusic ? id : appleCatalogID }
@@ -74,6 +90,17 @@ nonisolated struct Track: Identifiable, Hashable, Codable, Sendable {
         track.appleCatalogID = appleCatalogID
         return track
     }
+}
+
+/// Which recording a YouTube video carries, best for synced lyrics first.
+nonisolated enum VideoKind: Int, Codable, Comparable, Sendable {
+    /// Topic and other audio uploads: the album recording LRCLIB's lyrics are timed against.
+    case audio
+    /// Lyric videos, live versions and anything else the title doesn't call a music video.
+    case other
+    case musicVideo
+
+    static func < (lhs: VideoKind, rhs: VideoKind) -> Bool { lhs.rawValue < rhs.rawValue }
 }
 
 /// An album from Apple's catalog. It also serves YouTube songs, since YouTube's API has no albums.

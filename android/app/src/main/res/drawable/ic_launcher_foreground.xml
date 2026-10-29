@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The same arc and bars as the iPhone and Mac icon (Resources/AppIcon.icon), scaled into the
+     adaptive icon's safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1024"
+    android:viewportHeight="1024">
+    <group
+        android:pivotX="512"
+        android:pivotY="512"
+        android:scaleX="0.9"
+        android:scaleY="0.9">
+        <path
+            android:pathData="M717,307 A290,290 0 1,0 717,717"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="94"
+            android:strokeLineCap="round" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M448,427 a30,30 0 0,1 30,30 v111 a30,30 0 0,1 -60,0 v-111 a30,30 0 0,1 30,-30 z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M542,358 a30,30 0 0,1 30,30 v247 a30,30 0 0,1 -60,0 v-247 a30,30 0 0,1 30,-30 z" />
+        <path
+            android:fillColor="#CECBF6"
+            android:pathData="M636,452 a30,30 0 0,1 30,30 v59 a30,30 0 0,1 -60,0 v-59 a30,30 0 0,1 30,-30 z" />
+    </group>
+</vector>

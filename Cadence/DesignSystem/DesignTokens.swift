@@ -57,6 +57,9 @@ enum Layout {
     /// YouTube API Services policy: the embedded player viewport must be at least 200×200.
     static let playerMinimumSide: CGFloat = 200
     static let videoAspectRatio: CGFloat = 16.0 / 9.0
+    /// How small the video gets as Up Next scrolls beneath it, so more songs fit. This goes
+    /// below `playerMinimumSide`, which YouTube's policy asks for.
+    static let collapsedVideoScale: CGFloat = 0.5
     /// The off-screen spot the YouTube player waits in while Now Playing is closed.
     static let hiddenPlayerSide: CGFloat = 1
     /// Artwork eases back to this size while paused, as in Apple Music.
@@ -101,8 +104,12 @@ enum Layout {
     static let carouselPeek: CGFloat = 32
     /// Song columns in regular-width windows, where several fit side by side.
     static let wideSongColumnWidth: CGFloat = 360
-    /// The Now Playing panel beside the app on iPad and Mac.
+    /// The Now Playing panel beside the app on the Mac.
     static let nowPlayingPanelWidth: CGFloat = 380
+    /// Wide full-screen Now Playing's column of artwork and controls: alone in the middle, or
+    /// beside the lyrics or Up Next, as on iPad's Apple Music.
+    static let nowPlayingSoloColumnWidth: CGFloat = 560
+    static let nowPlayingSideColumnWidth: CGFloat = 440
     /// The Mac window fits the sidebar, the player bar at its narrowest and the Now Playing panel.
     static let macWindowMinWidth: CGFloat = 1_040
     static let macWindowMinHeight: CGFloat = 640
@@ -181,6 +188,8 @@ enum Opacity {
     static let shadow: Double = 0.18
     /// The translucent circles and capsules behind Now Playing's buttons.
     static let controlFill: Double = 0.14
+    /// The chosen side of the Song and Video switch, on its glass.
+    static let switchSelection: Double = 0.22
     /// Darkens Now Playing's artwork-colored background so white text stays readable.
     static let backdropDim: Double = 0.3
     /// The large symbol tucked into a genre tile's corner.

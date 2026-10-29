@@ -39,17 +39,37 @@ final class YouTubeAPIClient {
         return response.items.map(\.track)
     }
 
-    /// Embeddable music videos matching `query`. Costs ~101 quota units, so only call on submit.
+    /// Embeddable music videos matching `query`, plain songs ahead of their music videos.
+    /// Costs ~101 quota units, so only call on submit.
     func search(_ query: String) async throws -> [Track] {
+        // A search costs the same at any size, and a full page of details is still 1 unit, so
+        // fetch extra results to find plain uploads YouTube ranks below the music video.
         let response: YTListResponse<YTSearchResult> = try await send(.get, "search", query: [
             "part": "id",
             "type": "video",
             "videoCategoryId": YouTubeAPILimits.musicCategoryID,
             "videoEmbeddable": "true",
             "q": query,
-            "maxResults": String(YouTubeAPILimits.pageSize),
+            "maxResults": String(YouTubeAPILimits.maxPageSize),
         ])
-        return try await videos(ids: response.items.compactMap(\.id.videoId))
+        let results = try await videoDetails(ids: response.items.compactMap(\.id.videoId))
+        let ranked = VideoTitle.asksForVideo(query) ? results : Self.preferringPlainSongs(results)
+        return ranked.prefix(YouTubeAPILimits.pageSize).map(\.track)
+    }
+
+    /// Moves each song's audio or lyric video up to where its music video ranked, since music
+    /// videos' intros and outros throw synced lyrics off. Different songs keep YouTube's order,
+    /// and a music video stays where it is when the results hold no other version of the song.
+    private static func preferringPlainSongs(_ videos: [YTVideo]) -> [YTVideo] {
+        let songs = videos.map { SongQuery(track: $0.track) }
+        let kinds = videos.map(\.kind)
+        // Every version of a song takes the place of the version YouTube ranked highest.
+        let places = songs.indices.map { index in
+            songs.firstIndex { $0.isSameSong(as: songs[index]) } ?? index
+        }
+        return videos.indices
+            .sorted { (places[$0], kinds[$0], $0) < (places[$1], kinds[$1], $1) }
+            .map { videos[$0] }
     }
 
     /// The video for a song from Apple's catalog, or nil when no result carries its title.
@@ -70,9 +90,30 @@ final class YouTubeAPIClient {
         return candidates.max { Self.rank($0, for: song) < Self.rank($1, for: song) }?.id
     }
 
+    /// The ID of `track`'s music video, or of its audio (a lyric video failing that), or nil when
+    /// the results hold neither. Costs ~101 quota units, so `SongVersions` remembers the answer.
+    func otherVersionID(of track: Track, wantsVideo: Bool) async throws -> String? {
+        let song = SongQuery(track: track)
+        let response: YTListResponse<YTSearchResult> = try await send(.get, "search", query: [
+            "part": "id",
+            "type": "video",
+            "videoCategoryId": YouTubeAPILimits.musicCategoryID,
+            "videoEmbeddable": "true",
+            "q": "\(song.artist) \(song.title)",
+            "maxResults": String(YouTubeMatchPolicy.versionCandidates),
+        ])
+        let versions = try await videoDetails(ids: response.items.compactMap(\.id.videoId))
+            .filter { $0.id != track.id && SongQuery(track: $0.track).isSameSong(as: song) }
+        // Ties keep YouTube's own order.
+        let match = wantsVideo
+            ? versions.first { $0.kind == .musicVideo }
+            : versions.filter { $0.kind != .musicVideo }.min { $0.kind < $1.kind }
+        return match?.id
+    }
+
     /// Higher is better: the artist's Topic channel (the album audio), then a video the album
-    /// song's length, then any channel named after the artist.
-    private static func rank(_ video: YTVideo, for song: Track) -> (Int, Int, Int) {
+    /// song's length, then anything but a music video, then any channel named after the artist.
+    private static func rank(_ video: YTVideo, for song: Track) -> (Int, Int, Int, Int) {
         let channel = video.snippet.channelTitle
         let isArtistChannel = ArtistName.clean(channel).looselyMatches(song.artist)
         let isTopicChannel = isArtistChannel && ArtistName.isTopicChannel(channel)
@@ -82,7 +123,8 @@ final class YouTubeAPIClient {
         } else {
             false
         }
-        return (isTopicChannel ? 1 : 0, hasAlbumLength ? 1 : 0, isArtistChannel ? 1 : 0)
+        let isMusicVideo = video.kind == .musicVideo
+        return (isTopicChannel ? 1 : 0, hasAlbumLength ? 1 : 0, isMusicVideo ? 0 : 1, isArtistChannel ? 1 : 0)
     }
 
     /// Full video details in the order given. Unavailable videos are dropped.

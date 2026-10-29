@@ -3,6 +3,9 @@ import SwiftUI
 @main
 struct CadenceApp: App {
     @State private var environment = AppEnvironment.live()
+    #if os(macOS)
+    @NSApplicationDelegateAdaptor private var appDelegate: MacAppDelegate
+    #endif
 
     var body: some Scene {
         #if os(iOS)
@@ -19,6 +22,7 @@ struct CadenceApp: App {
             RootView()
                 .appEnvironment(environment)
                 .frame(minWidth: Layout.macWindowMinWidth, minHeight: Layout.macWindowMinHeight)
+                .background(HidesWindowOnClose(appDelegate: appDelegate))
         }
         .defaultSize(width: Layout.macWindowDefaultWidth, height: Layout.macWindowDefaultHeight)
         .commands {

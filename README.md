@@ -2,7 +2,8 @@
 
 A native SwiftUI music player for iOS 26+ and macOS 26+ that browses YouTube with the official
 **YouTube Data API v3** and plays songs in YouTube's official **IFrame player**, with
-Liquid Glass throughout. There are no third-party dependencies.
+Liquid Glass throughout. There are no third-party dependencies. An Android version, in Kotlin
+and Jetpack Compose, lives in `android/`.
 
 ## Features
 
@@ -55,6 +56,18 @@ The app runs without any of these and explains what's missing on each screen.
 `Cadence.xcodeproj` is generated from `project.yml` with [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 After adding or removing files, run `xcodegen generate`. You can also add the files in Xcode directly.
 
+## Android
+
+The Android app (Android 10 and later) has the same features as the iPhone app with YouTube: Home, Discover with genres, Search, albums and artists, your playlists, likes, Recently Played, Now Playing with synced lyrics and Up Next (Shuffle, Repeat, Autoplay), and the experimental background play, which shows a media notification and lock-screen controls. Apple Music isn't available on Android.
+
+It uses only Google's AndroidX and Jetpack Compose libraries, and reads its settings from the same `Config/Secrets.xcconfig` as the iPhone app:
+
+- `YOUTUBE_API_KEY`: requests name the iPhone app's bundle ID, so the key restricted to iOS apps works as it is.
+- `GOOGLE_CLIENT_ID`: sign-in uses the iPhone app's OAuth client in a Chrome Custom Tab, and Google sends it back to the app through the client's reversed ID.
+- `CADENCE_BUNDLE_IDENTIFIER`: sent with API requests, as above.
+
+Open the `android` folder in Android Studio and press Run. Change `Config/Secrets.xcconfig`, then build again to pick up the new values.
+
 ## Music services
 
 Choose a service in **Settings → Music Service** (or during onboarding). Every tab follows the selected service and shows only its music, Recently Played and Home's "Jump Back In" included; each service's history is kept and comes back when you switch back.
@@ -84,4 +97,5 @@ Cadence/
   Models/         Track, Playlist, AppError, LoadState
   Services/       YouTube API client, Google OAuth (PKCE + Keychain), player bridge, SwiftData recents
   Features/       Onboarding, Home, Discover, Search, Playlists, Recents, Catalog (albums, artists), Player, Account
+android/          The Android app: the same layout under app/src/main/java/com/nerijus/cadence
 ```

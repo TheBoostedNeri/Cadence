@@ -16,6 +16,8 @@ nonisolated enum PlaybackFailure: Equatable, Sendable {
     case appleMusicUnavailable
     /// An album song with no YouTube video to play.
     case noYouTubeMatch
+    /// A song with no music video to switch to, or a music video with no audio upload.
+    case noOtherVersion(wantedVideo: Bool)
 
     /// Maps IFrame Player API `onError` codes.
     init(youtubeErrorCode code: Int) {
@@ -97,6 +99,8 @@ nonisolated enum AppError: Error, Equatable, Sendable {
         case .playback(.playerError): String(localized: "Playback Error")
         case .playback(.appleMusicUnavailable): String(localized: "Couldn't Play on Apple Music")
         case .playback(.noYouTubeMatch): String(localized: "Not on YouTube")
+        case .playback(.noOtherVersion(let wantedVideo)):
+            wantedVideo ? String(localized: "No Music Video") : String(localized: "No Song Version")
         case .lyricsService: String(localized: "Lyrics Unavailable")
         case .appleMusicAccessNeeded: String(localized: "Apple Music Access Needed")
         case .appleMusicAccessDenied: String(localized: "Apple Music Access Is Off")
@@ -157,6 +161,10 @@ nonisolated enum AppError: Error, Equatable, Sendable {
             String(localized: "Playing Apple Music songs needs an active Apple Music subscription on this iPhone.")
         case .playback(.noYouTubeMatch):
             String(localized: "Cadence couldn't find a YouTube video of this song.")
+        case .playback(.noOtherVersion(let wantedVideo)):
+            wantedVideo
+                ? String(localized: "Cadence couldn't find a music video of this song on YouTube.")
+                : String(localized: "Cadence couldn't find this song's audio on YouTube.")
         case .appleMusicAccessNeeded:
             String(localized: "Allow Cadence to use your Apple Music library.")
         case .appleMusicAccessDenied:
@@ -177,7 +185,8 @@ nonisolated enum AppError: Error, Equatable, Sendable {
         case .offline: "wifi.slash"
         case .network: "antenna.radiowaves.left.and.right.slash"
         case .quotaExceeded: "hourglass"
-        case .notFound, .playback(.unavailable), .playback(.noYouTubeMatch): "questionmark.square.dashed"
+        case .notFound, .playback(.unavailable), .playback(.noYouTubeMatch), .playback(.noOtherVersion):
+            "questionmark.square.dashed"
         case .playback: "play.slash"
         case .lyricsService: "quote.bubble"
         case .appleMusicAccessNeeded, .appleMusicAccessDenied: "music.note.house"

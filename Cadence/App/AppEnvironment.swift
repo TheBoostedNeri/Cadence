@@ -38,6 +38,10 @@ final class AppEnvironment {
         player.matchYouTubeVideo = { track in
             try await matcher.match(track)
         }
+        let versions = SongVersions(api: api)
+        player.findOtherVersion = { track, wantsVideo in
+            try await versions.otherVersion(of: track, wantsVideo: wantsVideo)
+        }
         let catalogBrowser = catalogBrowser
         player.findAutoplayTracks = { track in
             try await catalogBrowser.autoplayTracks(after: track)
@@ -132,7 +136,7 @@ enum AppTab: Hashable {
     case playlists
     case recents
     case search
-    /// One of the user's playlists, listed by name in the Mac sidebar.
+    /// One of the user's playlists, listed by name in the sidebar on the Mac and iPad.
     case playlist(Playlist.ID)
 }
 
@@ -143,6 +147,7 @@ enum StorageKey {
     static let musicService = "musicService"
     static let youtubeBackgroundPlay = "experimental.youtubeBackgroundPlay"
     static let youtubeMatches = "youtubeMatches"
+    static let songVersions = "songVersions"
     static let playerVolume = "playerVolume"
     static let sidePanelMode = "sidePanelMode"
     static let autoplay = "autoplay"

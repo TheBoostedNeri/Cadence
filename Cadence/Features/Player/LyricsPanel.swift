@@ -62,19 +62,13 @@ struct LyricsPanel: View {
                 description: Text("This track has no lyrics.")
             )
         case .loaded(.plain(let text)):
-            ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.large) {
-                    Label("These lyrics aren't time-synced.", systemImage: "info.circle")
-                        .font(Typography.caption)
-                        .foregroundStyle(Palette.textSecondary)
-                    Text(text)
-                        .font(Typography.plainLyrics)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .padding(.vertical, Layout.lyricsEdgeFade)
-            }
-            .scrollIndicators(.hidden)
-            .lyricsEdgeFade()
+            stillLyrics(text, note: "These lyrics aren't time-synced.")
+        case .loaded(.synced(let lines)) where track.isMusicVideo:
+            // Music videos' intros and skits throw the timing off, so the lyrics hold still.
+            stillLyrics(
+                lines.map(\.text).joined(separator: "\n"),
+                note: "Lyrics hold still during music videos. Switch to Song to follow along."
+            )
         case .loaded(.synced(let lines)):
             SyncedLyricsView(
                 lines: lines,
@@ -87,6 +81,23 @@ struct LyricsPanel: View {
                 }
             )
         }
+    }
+
+    /// Lyrics as one block of text to scroll through, with no line following the song.
+    private func stillLyrics(_ text: String, note: LocalizedStringKey) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.large) {
+                Label(note, systemImage: "info.circle")
+                    .font(Typography.caption)
+                    .foregroundStyle(Palette.textSecondary)
+                Text(text)
+                    .font(Typography.plainLyrics)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(.vertical, Layout.lyricsEdgeFade)
+        }
+        .scrollIndicators(.hidden)
+        .lyricsEdgeFade()
     }
 
     private func load() async {

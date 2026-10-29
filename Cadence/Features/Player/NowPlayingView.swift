@@ -5,10 +5,9 @@ import SwiftUI
 /// bottom. It's always dark and tinted by the artwork, like Apple Music. YouTube's video stays at
 /// least 200×200 and is never covered while it plays.
 struct NowPlayingView: View {
-    /// Full screen on iPhone, like Apple Music; a panel beside the app in wide windows, like iPad.
+    /// Full screen on iPhone and iPad, like Apple Music; wide, it splits into two columns.
     enum Presentation {
         case fullScreen
-        case panel
         /// The Mac's panel, like Apple Music's: the player bar has the controls, so it holds just
         /// the video and, under it, the lyrics or Up Next.
         case sidePanel
@@ -26,6 +25,7 @@ struct NowPlayingView: View {
     @Environment(LyricsService.self) private var lyricsService
     @Environment(AppRouter.self) private var router
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.isWideLayout) private var isWideLayout
     @Environment(\.openURL) private var openURL
     @AppStorage(StorageKey.youtubeBackgroundPlay) private var isYouTubeBackgroundPlayEnabled = false
     @State private var coverContainerWidth: CGFloat = 0
@@ -47,6 +47,11 @@ struct NowPlayingView: View {
     @State private var controlsReveals = 0
     /// A finger on the controls keeps them up; lifting it restarts the countdown.
     @GestureState private var isTouchingControls = false
+    /// The side of the Song and Video switch being switched to, shown while it's found.
+    @State private var requestedVersion: Bool?
+    @State private var versionError: AppError?
+    @Namespace private var versionSelection
+    @State private var queueScroll = QueueScroll()
     @Environment(\.accessibilityVoiceOverEnabled) private var isVoiceOverEnabled
 
     private var isShowingLyrics: Bool { openPanel == .lyrics }
@@ -78,17 +83,78 @@ struct NowPlayingView: View {
             if presentation == .fullScreen { grabber }
         }
         // The full-screen player is its own presentation, so it can turn the status bar white
-        // over its dark background. The iPad panel shares the app's window, so it leaves it be.
-        .preferredColorScheme(presentation == .fullScreen ? .dark : nil)
+        // over its dark background.
+        .preferredColorScheme(.dark)
         .presentationBackground(Palette.playerBackground)
         .accessibilityAction(.escape) { close() }
         #endif
         .addToPlaylistSheet(isActive: true)
+        .errorAlert($versionError)
     }
 
     private func content(for track: Track) -> some View {
-        standardContent(for: track)
-            .background { backdrop(for: track) }
+        Group {
+            if isWideLayout && presentation == .fullScreen {
+                wideContent(for: track)
+            } else {
+                standardContent(for: track)
+            }
+        }
+        .background { backdrop(for: track) }
+    }
+
+    /// iPad, laid out like Apple Music there: the artwork (or video), the song and its controls in
+    /// one column, and the lyrics or Up Next filling the rest of the screen beside it. With
+    /// neither open, the column sits alone in the middle.
+    private func wideContent(for track: Track) -> some View {
+        HStack(spacing: Spacing.xxxLarge) {
+            VStack(spacing: Spacing.xLarge) {
+                if track.hasOtherVersions {
+                    versionSwitch(for: track)
+                }
+                wideCover(for: track)
+                    .padding(.horizontal, Spacing.xLarge)
+                    // Shrinks to leave the controls their room on short screens.
+                    .frame(maxHeight: .infinity)
+                mainControls(for: track)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: openPanel == nil ? Layout.nowPlayingSoloColumnWidth : Layout.nowPlayingSideColumnWidth)
+            if let openPanel {
+                Group {
+                    switch openPanel {
+                    case .lyrics:
+                        LyricsPanel(track: track)
+                    case .queue:
+                        // The song shows in the column beside it, so Up Next needs no header of its own.
+                        queuePanel(scrollingHeaderFor: nil)
+                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+        }
+        .padding(.horizontal, Spacing.xxLarge)
+        // Room for the grabber.
+        .padding(.top, Spacing.xLarge)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .animation(Motion.standard, value: openPanel)
+    }
+
+    /// The artwork square, as on iPad's Apple Music, or the music video at its own shape.
+    @ViewBuilder private func wideCover(for track: Track) -> some View {
+        if showsVideo(for: track) {
+            cover(for: track)
+        } else {
+            ArtworkView(url: track.largeArtworkURL ?? track.artworkURL, cornerRadius: Radius.large)
+                .aspectRatio(1, contentMode: .fit)
+                .overlay { artworkStatus(for: track) }
+                .clipShape(.rect(cornerRadius: Radius.large))
+                .shadow(color: Palette.shadow, radius: Elevation.shadowRadius, y: Elevation.shadowOffsetY)
+                // Eases back while paused, like Apple Music.
+                .scaleEffect(player.isPlaying || player.status == .loading ? 1 : Layout.pausedArtworkScale)
+                .animation(Motion.standard, value: player.status)
+        }
     }
 
     private func standardContent(for track: Track) -> some View {
@@ -97,13 +163,10 @@ struct NowPlayingView: View {
             if isImmersive {
                 immersiveArtwork(for: track)
             } else {
-                if presentation == .panel {
-                    hidePanelButton
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, Spacing.large)
-                }
+                topRow(for: track)
                 if showsVideo(for: track) {
                     cover(for: track)
+                        .modifier(CollapsingVideo(scroll: queueScroll, isActive: openPanel == .queue))
                         .padding(.horizontal, Spacing.large)
                 }
             }
@@ -205,6 +268,8 @@ struct NowPlayingView: View {
 
     /// Switches between the artwork, lyrics and Up Next, gliding the artwork between its spots.
     private func showPanel(_ panel: Panel?) {
+        // Up Next opens at its top, under the full-size video.
+        queueScroll.offset = 0
         isArtworkGliding = true
         withAnimation(Motion.standard) {
             openPanel = panel
@@ -249,9 +314,9 @@ struct NowPlayingView: View {
         withAnimation(Motion.standard) { areLyricsControlsHidden = false }
     }
 
-    /// Like Apple Music, artwork fills the top of Now Playing edge to edge wherever it stands in
-    /// for video: Apple Music, and YouTube with background play on. With the lyrics or queue open
-    /// it steps down to a small header.
+    /// Like Apple Music, artwork fills the top of Now Playing edge to edge wherever there's no
+    /// video: Apple Music, and YouTube songs as opposed to their music videos. With the lyrics or
+    /// queue open it steps down to a small header.
     private func usesImmersiveArtwork(for track: Track) -> Bool {
         !showsVideo(for: track) && openPanel == nil
     }
@@ -264,12 +329,9 @@ struct NowPlayingView: View {
                 .ignoresSafeArea(.container, edges: .top)
             artworkStatus(for: track)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            if presentation == .panel {
-                hidePanelButton
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Spacing.large)
-                    .padding(.top, Spacing.large)
-            }
+            // Full screen, the grabber sits over the top of the artwork.
+            topRow(for: track)
+                .padding(.top, Spacing.xLarge)
         }
         .frame(height: immersiveArtworkHeight)
         .animation(Motion.standard, value: player.status)
@@ -319,14 +381,67 @@ struct NowPlayingView: View {
         .foregroundStyle(Palette.textSecondary)
     }
 
-    /// The iPad panel has no swipe to close, so it keeps a button.
-    private var hidePanelButton: some View {
-        Button { close() } label: {
-            Image(systemName: "sidebar.trailing")
-                .glassIconButton()
+    /// The Song and Video switch, in the middle at the top.
+    @ViewBuilder private func topRow(for track: Track) -> some View {
+        if track.hasOtherVersions {
+            versionSwitch(for: track)
+                .padding(.horizontal, Spacing.large)
+        }
+    }
+
+    /// Song or Video, like the switch at the top of YouTube Music's player: the album audio,
+    /// which synced lyrics are timed against, or the music video.
+    private func versionSwitch(for track: Track) -> some View {
+        // The chosen side shows at once, while the other version is still being found.
+        let showsVideo = requestedVersion ?? track.isMusicVideo
+        return HStack(spacing: Spacing.none) {
+            versionOption("Song", isSelected: !showsVideo) {
+                switchVersion(of: track, toVideo: false)
+            }
+            versionOption("Video", isSelected: showsVideo) {
+                switchVersion(of: track, toVideo: true)
+            }
+        }
+        .padding(Spacing.xSmall)
+        .glassEffect(.regular.interactive(), in: .capsule)
+        .animation(Motion.standard, value: showsVideo)
+        .disabled(player.isSwitchingVersion)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Version")
+    }
+
+    /// One side of the switch; the chosen side's highlight glides between them.
+    private func versionOption(_ title: LocalizedStringKey, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(Typography.versionSwitch)
+                .foregroundStyle(Palette.onPlayer)
+                .padding(.horizontal, Spacing.large)
+                .padding(.vertical, Spacing.small)
+                .background {
+                    if isSelected {
+                        Capsule()
+                            .fill(Palette.onPlayer.opacity(Opacity.switchSelection))
+                            .matchedGeometryEffect(id: VersionSwitchID.selection, in: versionSelection)
+                    }
+                }
+                .contentShape(.capsule)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Hide Player")
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    private func switchVersion(of track: Track, toVideo wantsVideo: Bool) {
+        guard wantsVideo != track.isMusicVideo else { return }
+        requestedVersion = wantsVideo
+        Task {
+            defer { requestedVersion = nil }
+            do {
+                try await player.switchVersion(toVideo: wantsVideo)
+            } catch {
+                if !error.isCancellation { versionError = AppError(error) }
+            }
+        }
     }
 
     // MARK: Controls
@@ -349,7 +464,7 @@ struct NowPlayingView: View {
                 headerButtons(for: track)
             }
             playbackControls
-            if showsVideo(for: track) {
+            if pausesWhenClosed(track) {
                 pausesWhenClosedNotice
             }
         }
@@ -555,12 +670,19 @@ struct NowPlayingView: View {
                 // The Mac's list ignores a top margin for a header to sit over, which would leave
                 // the header covering the first songs, so it scrolls as the list's first row.
                 upNextList(header: header)
+                    .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.contentOffset.y + geometry.contentInsets.top
+                    } action: { _, offset in
+                        queueScroll.offset = offset
+                    }
                     .scrollEdgeFade()
                 #else
                 ScrollAwayHeaderList {
                     header
                 } list: {
                     upNextList(header: EmptyView?.none)
+                } onScroll: { offset in
+                    queueScroll.offset = offset
                 }
                 #endif
             }
@@ -718,8 +840,12 @@ struct NowPlayingView: View {
     /// whatever the Mac's appearance.
     private func sidePanelContent(for track: Track) -> some View {
         VStack(spacing: Spacing.large) {
+            if track.hasOtherVersions {
+                versionSwitch(for: track)
+            }
             if showsVideo(for: track) {
                 cover(for: track)
+                    .modifier(CollapsingVideo(scroll: queueScroll, isActive: sidePanelMode == .upNext))
             }
             compactHeader(for: track)
             switch sidePanelMode {
@@ -728,7 +854,7 @@ struct NowPlayingView: View {
             case .upNext:
                 queuePanel(scrollingHeaderFor: nil)
             }
-            if showsVideo(for: track) {
+            if pausesWhenClosed(track) {
                 pausesWhenClosedNotice
             }
         }
@@ -746,9 +872,14 @@ struct NowPlayingView: View {
         return isShowingLyrics
     }
 
-    /// YouTube's video shows only when its rules apply. With background play on, the player
-    /// stays in its fixed hidden spot (see `MainTabView`) and Now Playing shows artwork instead.
+    /// Music videos show their video, as the Song and Video switch chooses; songs show their
+    /// artwork while the player plays from its hidden spot (see `MainTabView`).
     private func showsVideo(for track: Track) -> Bool {
+        track.showsVideo
+    }
+
+    /// Without background play, YouTube may only play while Now Playing is open.
+    private func pausesWhenClosed(_ track: Track) -> Bool {
         track.requiresVisiblePlayer && !isYouTubeBackgroundPlayEnabled
     }
 
@@ -766,7 +897,8 @@ struct NowPlayingView: View {
             Button("Go to Artist", systemImage: "music.mic") {
                 router.showArtist(for: track)
             }
-            if areLyricsShowing {
+            // Music videos show their lyrics without timing, so there's none to adjust.
+            if areLyricsShowing && !track.isMusicVideo {
                 Section("Lyrics Timing") {
                     Button("Show Lyrics Earlier", systemImage: "backward") {
                         lyricsService.adjustOffset(by: -LyricsPolicy.offsetStep, for: track)
@@ -812,6 +944,9 @@ struct NowPlayingView: View {
                 // below drive playback and "Open in YouTube" stays in the ⋯ menu.
                 YouTubePlayerView(webView: player.webView, onAttach: { player.webViewDidMove() })
                     .allowsHitTesting(false)
+                    // The player's hidden spot gives it up while this is on screen.
+                    .onAppear { player.videoViewDidAppear() }
+                    .onDisappear { player.videoViewDidDisappear() }
             } else {
                 ArtworkView(url: track.largeArtworkURL ?? track.artworkURL, cornerRadius: Radius.none)
             }
@@ -910,7 +1045,7 @@ struct NowPlayingView: View {
     private func close() {
         switch presentation {
         case .fullScreen: dismiss()
-        case .panel, .sidePanel: player.isNowPlayingPresented = false
+        case .sidePanel: player.isNowPlayingPresented = false
         }
     }
 
@@ -923,6 +1058,10 @@ struct NowPlayingView: View {
 /// Apple Music's scrubber: a thin bar that thickens while dragged, with the times underneath.
 /// Dragging moves from where the song is rather than jumping to the finger, so it can be fine-tuned.
 /// What restarts the countdown that hides the controls over lyrics.
+private enum VersionSwitchID {
+    static let selection = "selection"
+}
+
 private struct ControlsCountdown: Equatable {
     let isRunning: Bool
     let reveals: Int
@@ -950,6 +1089,8 @@ private struct ArtworkSlotKey: PreferenceKey {
 private struct ScrollAwayHeaderList<Header: View, Content: View>: View {
     @ViewBuilder let header: Header
     @ViewBuilder let list: Content
+    /// How far the list has scrolled from its top.
+    var onScroll: (CGFloat) -> Void = { _ in }
 
     @State private var headerHeight: CGFloat = 0
     @State private var scrollOffset: CGFloat = 0
@@ -961,6 +1102,7 @@ private struct ScrollAwayHeaderList<Header: View, Content: View>: View {
                 geometry.contentOffset.y + geometry.contentInsets.top
             } action: { _, offset in
                 scrollOffset = offset
+                onScroll(offset)
             }
             .overlay(alignment: .top) {
                 header
@@ -1010,6 +1152,40 @@ private extension View {
             .listRowInsets(EdgeInsets(
                 top: Spacing.small, leading: Spacing.none, bottom: Spacing.small, trailing: Spacing.none
             ))
+    }
+}
+
+/// How far Up Next has scrolled. Kept apart from Now Playing's own state, so scrolling only
+/// redraws the video it shrinks.
+@Observable
+private final class QueueScroll {
+    var offset: CGFloat = 0
+}
+
+/// Shrinks the video, from the top down, as Up Next scrolls beneath it, point for point, until
+/// it's `collapsedVideoScale` of its size; scrolling back to the top grows it again. It scales
+/// rather than resizing the player, which would make YouTube lay out every frame.
+private struct CollapsingVideo: ViewModifier {
+    let scroll: QueueScroll
+    let isActive: Bool
+
+    @State private var fullHeight: CGFloat = 0
+
+    private var scale: CGFloat {
+        guard isActive, fullHeight > 0 else { return 1 }
+        let shrink = min(max(scroll.offset, 0), fullHeight * (1 - Layout.collapsedVideoScale))
+        return 1 - shrink / fullHeight
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .onGeometryChange(for: CGFloat.self) { proxy in
+                proxy.size.height
+            } action: { height in
+                fullHeight = height
+            }
+            .scaleEffect(scale, anchor: .top)
+            .frame(height: fullHeight > 0 ? fullHeight * scale : nil, alignment: .top)
     }
 }
 
