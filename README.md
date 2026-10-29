@@ -6,18 +6,38 @@ Liquid Glass throughout. There are no third-party dependencies.
 
 ## Features
 
-- **Onboarding**: welcome, how playback works, and connecting a YouTube account (the only permission the app needs).
-- **Home**: trending music for your region, plus "Jump Back In" from your history.
-- **Search**: songs and music videos, with results that update as you type. Each YouTube search costs 100 quota units, so live search waits for a half-second pause and at least two characters, and reuses earlier results. Pressing Search searches right away.
-- **Playlists**: your real YouTube playlists. Play, shuffle, create, add songs (long-press any song) and swipe to remove. Rename or delete a playlist from its page's ⋯ menu or by long-pressing it in Playlists (50 quota units each; Apple Music doesn't let apps rename or delete playlists, so it's YouTube only).
-- **Discover**: what's trending on the selected service, swiped through in columns, then tiles for every genre (Pop, Rock, Hip-Hop/Rap, K-Pop, Jazz, Classical and more). A genre opens its best-selling songs in your region from Apple's free iTunes Store charts, which need no key or quota to load. They play on the selected service: on YouTube, each song's video is found as it comes up to play, like album songs (a search costs 100 quota units the first time a song plays, then the match is remembered).
-- **Recents**: play history stored on the device with SwiftData, kept separately for each service.
-- **Song menus**: every song in a list has a ⋯ button, like Apple Music, with the same actions as a long press: Play Next, Play Last, Add to Playlist, Go to Album, Go to Artist, Share and Open in YouTube or Apple Music. Songs from Apple's catalog (albums, artists and Discover's genres) can be added to YouTube playlists too: their video is found first, a 100-unit search the first time, plus YouTube's 50 units for each song added. Discover's genre and Trending lists have **Select**, to pick several songs and add them to a playlist together; songs YouTube has no video for are skipped and counted.
-- **Queue**: long-press any song, or tap its ⋯, for **Play Next** or **Play Last**. In Up Next, long-press a song to move it up or remove it, or clear the whole list; on the Mac, drag songs into a new order and press Delete to remove one. Shuffle and Repeat (all, or one song) are in Up Next, the Mac player bar and the Playback menu. **Autoplay** keeps the music going when the queue runs out: it lines up similar music after everything you've queued: popular songs from the same genre in Apple's charts (Apple's "Hard Rock" counts as Rock, "Indie Pop" as Alternative, and so on), with about one in three by the same artist, tops them up as they play, and Up Next lists them in their own section below a divider (on YouTube each one is found when it plays, like album songs). Songs you add with Play Next or Play Last always go before Autoplay's, and turning Autoplay off takes its songs out. Editing Up Next, Shuffle and Repeat work on YouTube queues; the system Apple Music player keeps its own order, though Play Next and Play Last work there too.
-- **Albums and artists**: long-press any song, or use the ⋯ menu in Now Playing, and choose **Go to Album** for the album it's from (Play, Shuffle and a numbered track list) or **Go to Artist** for an artist page laid out like Apple Music's: a large header with their name and Play, the latest release, Top Songs in columns of four you swipe through (See All lists every song, most popular first), and carousels of Albums, Singles & EPs, and releases they Appear On, each opening its album. Apple's free catalog has no artist photos, so the cover of their most popular song stands in. Tapping the artist on an album page opens the artist too, and pages stack, so you can go from album to artist to another album and back. YouTube's API has neither albums nor artists, so both come from Apple's free iTunes catalog for every service. Apple Music songs play as they are. On YouTube, each album song's video is found when it's about to play: one YouTube search (about 100 quota units) per song, preferring the artist's auto-generated "Topic" channel, which carries the album audio. Each match is remembered on the device, so a song is never searched for twice.
-- **Now Playing**: laid out like Apple Music on iPhone. It's always dark and tinted by the artwork's colors, with white text. The artwork (or YouTube's video) sits on top; wherever artwork stands in for video (Apple Music, and YouTube with background play on), it fills the top edge to edge and fades into the background. Below are the song with a star and ⋯ menu, a thin scrubber that thickens while you drag it, large Previous/Play/Next buttons, the volume slider, and Lyrics, AirPlay and Up Next along the bottom. Lyrics and Up Next swap in for the artwork, which steps down to a small header (tap it to go back). Up Next has Shuffle, Repeat and Autoplay on top, and handles for dragging songs into a new order; long-press a song to play it next or remove it. The star likes the song on your YouTube account, so it shows in Liked Music (50 quota units per like; it appears for YouTube videos while an account is connected). The mini player sits in the tab bar's bottom accessory; like Apple Music's, it shows "Not Playing" with greyed-out buttons when nothing is queued.
-- **iPad**: a sidebar, multi-column song grids, playlists as a grid of artwork, and Now Playing in a panel beside the app so you can keep browsing. It adapts to every orientation and window size, and narrow windows get the iPhone layout. With a keyboard: Space plays or pauses, ⌘→ and ⌘← skip, ⌘L shows Now Playing, and ⌘1–4 and ⌘F switch tabs. Songs can be dragged into other apps as links.
-- **Mac**: a native Mac app from the same code, laid out like Apple Music on the Mac. The player floats in a glass bar along the bottom of the content: Shuffle, Previous, Play, Next and Repeat on the left; the song in the middle, with its artwork, title, artist and album, and a thin progress bar you can click or drag (the times show while the pointer is over it); and Lyrics, Up Next and volume on the right. With nothing playing, the playback buttons grey out and a music note sits in the middle. Shuffle and Repeat (all, or one song) work on YouTube queues and carry over to the next list you play. Lyrics and Up Next open a panel on the right that matches the iPhone's lyrics and queue views: dark and tinted by the artwork, the YouTube video at the top (YouTube requires it to stay visible while playing), the song with its star and ⋯, then the lyrics, or Up Next with Shuffle, Repeat and Autoplay above songs you can drag into order or remove with Delete. Clicking a button again closes the panel, and clicking the artwork shows or hides it. The sidebar has search at the top, then Home and Discover, a Library section with Recently Played, and a Playlists section with All Playlists and every playlist by name. The Playback menu and its shortcuts are in the menu bar, and Settings has its own window (⌘,). It's a single window, because there's one player. It plays YouTube only: the Apple Music library and player APIs Cadence uses don't exist on macOS.
+### 🎧 Listen
+- **Home**: your liked music, playlists, new uploads from subscriptions, and Jump Back In
+- **Discover**: what's trending, plus 22 genres to explore, from Pop to Jazz
+- **Search**: songs and music videos, updating as you type
+- **Albums and artists**: Go to Album or Go to Artist from any song, with artist pages like Apple Music's
+
+### ▶️ Now Playing
+- Full-bleed artwork that glides into a small header when you open lyrics or Up Next
+- Time-synced lyrics, with controls that step aside while you read
+- Up Next: drag to reorder, Shuffle, Repeat, and **Autoplay** with similar music
+- Like a song with the ☆, AirPlay, and the system volume slider
+
+### 📚 Library
+- Your real YouTube playlists: create, rename, delete, add and remove songs
+- Every song has a ⋯ menu: Play Next, Play Last, Add to Playlist, Go to Album or Artist, Share
+- Pick several songs in Discover and add them to a playlist together
+- Recently Played, kept separately for each service
+
+### 💻 iPad and Mac
+- **iPad**: sidebar, song grids, Now Playing beside the app, and keyboard shortcuts
+- **Mac**: a native app laid out like Apple Music, with a glass player bar, a lyrics and Up Next panel, and a Playback menu
+
+### 🔑 Quota at a glance
+YouTube allows 10,000 API units a day per project. Browsing is cheap; these cost the most:
+
+| Action | Units |
+| --- | --- |
+| Search, or finding the video for an album, artist or Discover song (once per song) | 100 |
+| Add a song to a playlist, like a song, rename or delete a playlist | 50 |
+| Load Trending, liked music or a page of a playlist | 1 |
+
+Albums, artists and Discover's genres come from Apple's free iTunes catalog, which needs no key and uses no quota.
 
 ## Setup
 
