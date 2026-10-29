@@ -1,0 +1,14 @@
+// Base build settings for Cadence.
+// Put your own values in Config/Secrets.xcconfig, using the names below.
+// That file is git-ignored and overrides everything below.
+
+CADENCE_BUNDLE_IDENTIFIER = com.example.cadence
+DEVELOPMENT_TEAM =
+
+// YouTube Data API v3 key. Used for browsing and search when no account is connected.
+YOUTUBE_API_KEY =
+
+// OAuth 2.0 client ID of type "iOS" whose bundle ID matches CADENCE_BUNDLE_IDENTIFIER.
+GOOGLE_CLIENT_ID =
+
+#include? "Secrets.xcconfig"
