@@ -40,7 +40,7 @@ targets:
       path: Cadence/Resources/Info.plist
       properties:
         CFBundleDisplayName: Cadence
-        CFBundleShortVersionString: "1.0"
+        CFBundleShortVersionString: "0.1"
         CFBundleVersion: "1"
         UILaunchScreen: {}
         # One window only: the app has a single player, which can't be shown in two places.
@@ -90,7 +90,7 @@ targets:
       path: Cadence/Resources/Info-macOS.plist
       properties:
         CFBundleDisplayName: Cadence
-        CFBundleShortVersionString: "1.0"
+        CFBundleShortVersionString: "0.1"
         CFBundleVersion: "1"
         LSApplicationCategoryType: public.app-category.music
         ITSAppUsesNonExemptEncryption: false
